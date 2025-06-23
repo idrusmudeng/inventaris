@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventaris Barang Sekolah</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+      background: #f9f9f9;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #ffffff;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    strong {
+      font-size: 18px;
+      display: block;
+      color: #333;
+    }
+
+    em {
+      color: #666;
+    }
+  </style>
+  <script>
+    async function loadData() {
+      const response = await fetch("https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec");
+      const data = await response.json();
+      const list = document.getElementById("list");
+      const search = document.getElementById("search").value.toLowerCase();
+
+      list.innerHTML = "";
+
+      data.filter(item =>
+        item["Nama Barang"].toLowerCase().includes(search) ||
+        item["Lokasi"].toLowerCase().includes(search) ||
+        item["Kode"].toLowerCase().includes(search)
+      ).forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <strong>${item["Nama Barang"]}</strong>
+          Kode: ${item["Kode"]}<br>
+          Lokasi: ${item["Lokasi"]}<br>
+          Jumlah: ${item["Jumlah"]}<br>
+          <em>${item["Keterangan"]}</em>`;
+        list.appendChild(li);
+      });
+    }
+  </script>
+</head>
+<body onload="loadData()">
+  <h2>Inventaris Barang Sekolah</h2>
+  <input type="text" id="search" placeholder="Cari barang, kode, atau lokasi..." oninput="loadData()">
+  <ul id="list"></ul>
+</body>
+</html>
