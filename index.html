@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Inventaris Barang Sekolah</title>
 
-  <!-- DataTables CSS & JS -->
+  <!-- DataTables -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -14,11 +14,27 @@
       font-family: sans-serif;
       padding: 20px;
       background: #f5f5f5;
+      max-width: 1200px;
+      margin: auto;
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+    }
+
+    .filters {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    select {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
     }
 
     table {
@@ -44,48 +60,75 @@
 
   <h2>Inventaris Barang Sekolah</h2>
 
+  <div class="filters">
+    <label>
+      Kategori:
+      <select id="filterKategori">
+        <option value="">Semua</option>
+      </select>
+    </label>
+    <label>
+      Lokasi:
+      <select id="filterLokasi">
+        <option value="">Semua</option>
+      </select>
+    </label>
+  </div>
+
   <table id="tabelBarang" class="display">
-    <thead>
-      <tr>
-        <th>Kode</th>
-        <th>Nama Barang</th>
-        <th>Serial</th>
-        <th>Kategori</th>
-        <th>Model</th>
-        <th>Jumlah</th>
-        <th>Lokasi</th>
-        <th>Keterangan</th>
-        <th>Foto</th>
-      </tr>
-    </thead>
-    <tbody id="dataBody"></tbody>
+    <thead><tr id="thead-row"></tr></thead>
+    <tbody id="tbody-data"></tbody>
   </table>
 
   <script>
+    let dataTable;
+    let allData = [];
+    let headers = [];
+
     async function loadData() {
-      const url = "https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec"; // ganti dengan web app kamu
+      const url = "https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec";
       const res = await fetch(url);
       const data = await res.json();
+      allData = data;
 
-      const body = document.getElementById("dataBody");
-      data.forEach(item => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${item["Kode"] || ""}</td>
-          <td>${item["Nama Barang"] || ""}</td>
-          <td>${item["Serial Number"] || ""}</td>
-          <td>${item["Kategori"] || ""}</td>
-          <td>${item["Model/Tipe"] || ""}</td>
-          <td>${item["Jumlah"] || ""}</td>
-          <td>${item["Lokasi"] || ""}</td>
-          <td>${item["Keterangan"] || ""}</td>
-          <td><img src="${item["Foto URL"] || 'https://via.placeholder.com/100'}" alt="foto"></td>
-        `;
-        body.appendChild(row);
+      if (data.length === 0) return;
+
+      headers = Object.keys(data[0]);
+
+      // Buat header tabel
+      const theadRow = document.getElementById("thead-row");
+      headers.forEach(header => {
+        const th = document.createElement("th");
+        th.textContent = header;
+        theadRow.appendChild(th);
       });
 
-      // Aktifkan DataTables
-      new DataTable('#tabelBarang', {
+      populateTable(data);
+      populateFilters(data);
+    }
+
+    function populateTable(data) {
+      const tbody = document.getElementById("tbody-data");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        headers.forEach(key => {
+          const td = document.createElement("td");
+
+          if (key.toLowerCase().includes("foto") && typeof row[key] === "string" && row[key].includes("http")) {
+            td.innerHTML = `<img src="${row[key]}" alt="gambar">`;
+          } else {
+            td.textContent = row[key];
+          }
+
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      if (dataTable) dataTable.destroy();
+      dataTable = new DataTable('#tabelBarang', {
         responsive: true,
         language: {
           search: "Cari:",
@@ -94,6 +137,53 @@
           paginate: { previous: "Sebelumnya", next: "Berikutnya" }
         }
       });
+    }
+
+    function populateFilters(data) {
+      const kategoriSet = new Set();
+      const lokasiSet = new Set();
+
+      data.forEach(item => {
+        if (item["Kategori"]) kategoriSet.add(item["Kategori"]);
+        if (item["Lokasi"]) lokasiSet.add(item["Lokasi"]);
+      });
+
+      const katSelect = document.getElementById("filterKategori");
+      const lokSelect = document.getElementById("filterLokasi");
+
+      kategoriSet.forEach(kat => {
+        const opt = document.createElement("option");
+        opt.value = kat;
+        opt.textContent = kat;
+        katSelect.appendChild(opt);
+      });
+
+      lokasiSet.forEach(lok => {
+        const opt = document.createElement("option");
+        opt.value = lok;
+        opt.textContent = lok;
+        lokSelect.appendChild(opt);
+      });
+
+      katSelect.addEventListener("change", applyFilter);
+      lokSelect.addEventListener("change", applyFilter);
+    }
+
+    function applyFilter() {
+      const kategori = document.getElementById("filterKategori").value.toLowerCase();
+      const lokasi = document.getElementById("filterLokasi").value.toLowerCase();
+
+      const filtered = allData.filter(item => {
+        const kat = (item["Kategori"] || "").toLowerCase();
+        const lok = (item["Lokasi"] || "").toLowerCase();
+
+        const matchKat = kategori ? kat === kategori : true;
+        const matchLok = lokasi ? lok === lokasi : true;
+
+        return matchKat && matchLok;
+      });
+
+      populateTable(filtered);
     }
 
     loadData();
