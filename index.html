@@ -3,81 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <title>Inventaris Barang Sekolah</title>
+
+  <!-- DataTables CSS & JS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
   <style>
     body {
       font-family: sans-serif;
       padding: 20px;
-      max-width: 800px;
-      margin: auto;
-      background: #f9f9f9;
+      background: #f5f5f5;
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
 
-    input {
-      padding: 10px;
+    table {
       width: 100%;
-      font-size: 16px;
-      margin-bottom: 20px;
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    table thead {
+      background: #007bff;
+      color: white;
+    }
+
+    img {
+      width: 80px;
       border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    li {
-      background: #ffffff;
-      margin: 10px 0;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    strong {
-      font-size: 18px;
-      display: block;
-      color: #333;
-    }
-
-    em {
-      color: #666;
     }
   </style>
+</head>
+<body>
+
+  <h2>Inventaris Barang Sekolah</h2>
+
+  <table id="tabelBarang" class="display">
+    <thead>
+      <tr>
+        <th>Kode</th>
+        <th>Nama Barang</th>
+        <th>Serial</th>
+        <th>Kategori</th>
+        <th>Model</th>
+        <th>Jumlah</th>
+        <th>Lokasi</th>
+        <th>Keterangan</th>
+        <th>Foto</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody"></tbody>
+  </table>
+
   <script>
     async function loadData() {
-      const response = await fetch("https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec");
-      const data = await response.json();
-      const list = document.getElementById("list");
-      const search = document.getElementById("search").value.toLowerCase();
+      const url = "https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec"; // ganti dengan web app kamu
+      const res = await fetch(url);
+      const data = await res.json();
 
-      list.innerHTML = "";
+      const body = document.getElementById("dataBody");
+      data.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item["Kode"] || ""}</td>
+          <td>${item["Nama Barang"] || ""}</td>
+          <td>${item["Serial Number"] || ""}</td>
+          <td>${item["Kategori"] || ""}</td>
+          <td>${item["Model/Tipe"] || ""}</td>
+          <td>${item["Jumlah"] || ""}</td>
+          <td>${item["Lokasi"] || ""}</td>
+          <td>${item["Keterangan"] || ""}</td>
+          <td><img src="${item["Foto URL"] || 'https://via.placeholder.com/100'}" alt="foto"></td>
+        `;
+        body.appendChild(row);
+      });
 
-      data.filter(item =>
-        item["Nama Barang"].toLowerCase().includes(search) ||
-        item["Lokasi"].toLowerCase().includes(search) ||
-        item["Kode"].toLowerCase().includes(search)
-      ).forEach(item => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <strong>${item["Nama Barang"]}</strong>
-          Kode: ${item["Kode"]}<br>
-          Lokasi: ${item["Lokasi"]}<br>
-          Jumlah: ${item["Jumlah"]}<br>
-          <em>${item["Keterangan"]}</em>`;
-        list.appendChild(li);
+      // Aktifkan DataTables
+      new DataTable('#tabelBarang', {
+        responsive: true,
+        language: {
+          search: "Cari:",
+          lengthMenu: "Tampilkan _MENU_ data",
+          info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+          paginate: { previous: "Sebelumnya", next: "Berikutnya" }
+        }
       });
     }
+
+    loadData();
   </script>
-</head>
-<body onload="loadData()">
-  <h2>Inventaris Barang Sekolah</h2>
-  <input type="text" id="search" placeholder="Cari barang, kode, atau lokasi..." oninput="loadData()">
-  <ul id="list"></ul>
+
 </body>
 </html>
