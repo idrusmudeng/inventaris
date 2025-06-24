@@ -23,20 +23,6 @@
       margin-bottom: 20px;
     }
 
-    .filters {
-      margin-bottom: 20px;
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    select {
-      padding: 8px;
-      font-size: 14px;
-      border-radius: 5px;
-    }
-
     table {
       width: 100%;
       background: #fff;
@@ -50,9 +36,30 @@
       color: white;
     }
 
-    img {
-      width: 80px;
-      border-radius: 5px;
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+    }
+
+    .close {
+      float: right;
+      font-size: 20px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -60,75 +67,64 @@
 
   <h2>Inventaris Barang Sekolah</h2>
 
-  <div class="filters">
-    <label>
-      Kategori:
-      <select id="filterKategori">
-        <option value="">Semua</option>
-      </select>
-    </label>
-    <label>
-      Lokasi:
-      <select id="filterLokasi">
-        <option value="">Semua</option>
-      </select>
-    </label>
-  </div>
-
   <table id="tabelBarang" class="display">
-    <thead><tr id="thead-row"></tr></thead>
+    <thead>
+      <tr>
+        <th>ID Barang</th>
+        <th>Nama Barang</th>
+        <th>Kategori</th>
+        <th>Merk/Tipe</th>
+        <th>Spesifikasi</th>
+        <th>Jumlah</th>
+        <th>Satuan</th>
+        <th>Lokasi</th>
+        <th>Tahun Perolehan</th>
+        <th>Kondisi</th>
+      </tr>
+    </thead>
     <tbody id="tbody-data"></tbody>
   </table>
 
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('detailModal').style.display='none'">&times;</span>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
   <script>
-    let dataTable;
-    let allData = [];
-    let headers = [];
+    let fullData = [];
 
     async function loadData() {
       const url = "https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec";
       const res = await fetch(url);
       const data = await res.json();
-      allData = data;
-
-      if (data.length === 0) return;
-
-      headers = Object.keys(data[0]);
-
-      // Buat header tabel
-      const theadRow = document.getElementById("thead-row");
-      headers.forEach(header => {
-        const th = document.createElement("th");
-        th.textContent = header;
-        theadRow.appendChild(th);
-      });
-
+      fullData = data;
       populateTable(data);
-      populateFilters(data);
     }
 
     function populateTable(data) {
       const tbody = document.getElementById("tbody-data");
       tbody.innerHTML = "";
 
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const tr = document.createElement("tr");
-        headers.forEach(key => {
-          const td = document.createElement("td");
-
-          if (key.toLowerCase().includes("foto") && typeof row[key] === "string" && row[key].includes("http")) {
-            td.innerHTML = `<img src="${row[key]}" alt="gambar">`;
-          } else {
-            td.textContent = row[key];
-          }
-
-          tr.appendChild(td);
-        });
+        tr.innerHTML = `
+          <td>${row["ID Barang"] || ""}</td>
+          <td><a href="#" onclick="showDetail(${index})">${row["Nama Barang"] || ""}</a></td>
+          <td>${row["Kategori"] || ""}</td>
+          <td>${row["Merk/Tipe"] || ""}</td>
+          <td>${row["Spesifikasi"] || ""}</td>
+          <td>${row["Jumlah"] || ""}</td>
+          <td>${row["Satuan"] || ""}</td>
+          <td>${row["Lokasi"] || ""}</td>
+          <td>${row["Tahun Perolehan"] || ""}</td>
+          <td>${row["Kondisi"] || ""}</td>
+        `;
         tbody.appendChild(tr);
       });
 
-      if (dataTable) dataTable.destroy();
-      dataTable = new DataTable('#tabelBarang', {
+      new DataTable('#tabelBarang', {
         responsive: true,
         language: {
           search: "Cari:",
@@ -139,51 +135,22 @@
       });
     }
 
-    function populateFilters(data) {
-      const kategoriSet = new Set();
-      const lokasiSet = new Set();
-
-      data.forEach(item => {
-        if (item["Kategori"]) kategoriSet.add(item["Kategori"]);
-        if (item["Lokasi"]) lokasiSet.add(item["Lokasi"]);
-      });
-
-      const katSelect = document.getElementById("filterKategori");
-      const lokSelect = document.getElementById("filterLokasi");
-
-      kategoriSet.forEach(kat => {
-        const opt = document.createElement("option");
-        opt.value = kat;
-        opt.textContent = kat;
-        katSelect.appendChild(opt);
-      });
-
-      lokasiSet.forEach(lok => {
-        const opt = document.createElement("option");
-        opt.value = lok;
-        opt.textContent = lok;
-        lokSelect.appendChild(opt);
-      });
-
-      katSelect.addEventListener("change", applyFilter);
-      lokSelect.addEventListener("change", applyFilter);
+    function showDetail(index) {
+      const data = fullData[index];
+      let html = "<h3>Detail Barang</h3><table style='width:100%; border-collapse:collapse;'>";
+      for (const key in data) {
+        html += `<tr><td style='font-weight:bold; padding:5px;'>${key}</td><td style='padding:5px;'>${data[key]}</td></tr>`;
+      }
+      html += "</table>";
+      document.getElementById("detailContent").innerHTML = html;
+      document.getElementById("detailModal").style.display = "block";
     }
 
-    function applyFilter() {
-      const kategori = document.getElementById("filterKategori").value.toLowerCase();
-      const lokasi = document.getElementById("filterLokasi").value.toLowerCase();
-
-      const filtered = allData.filter(item => {
-        const kat = (item["Kategori"] || "").toLowerCase();
-        const lok = (item["Lokasi"] || "").toLowerCase();
-
-        const matchKat = kategori ? kat === kategori : true;
-        const matchLok = lokasi ? lok === lokasi : true;
-
-        return matchKat && matchLok;
-      });
-
-      populateTable(filtered);
+    window.onclick = function(event) {
+      const modal = document.getElementById("detailModal");
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
     }
 
     loadData();
