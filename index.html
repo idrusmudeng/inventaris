@@ -20,7 +20,17 @@
 
     h2 {
       text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .filters {
       margin-bottom: 20px;
+      text-align: center;
+    }
+
+    select {
+      padding: 5px;
+      margin: 0 10px;
     }
 
     table {
@@ -67,6 +77,18 @@
 
   <h2>Inventaris Barang Sekolah</h2>
 
+  <div class="filters">
+    <label for="filterKategori">Kategori:</label>
+    <select id="filterKategori">
+      <option value="">Semua</option>
+    </select>
+
+    <label for="filterLokasi">Lokasi:</label>
+    <select id="filterLokasi">
+      <option value="">Semua</option>
+    </select>
+  </div>
+
   <table id="tabelBarang" class="display">
     <thead>
       <tr>
@@ -94,24 +116,72 @@
 
   <script>
     let fullData = [];
+    let dataTable;
 
     async function loadData() {
       const url = "https://script.google.com/macros/s/AKfycbxlD-LXvMXPkLfGflvu9WAllydUYmYUiSdfQaoEbgjeM_aRrkB5NmhwPNfoTlrNx5ke/exec";
       const res = await fetch(url);
       const data = await res.json();
       fullData = data;
+      populateDropdowns(data);
       populateTable(data);
+    }
+
+    function populateDropdowns(data) {
+      const kategoriSet = new Set();
+      const lokasiSet = new Set();
+
+      data.forEach(row => {
+        if (row["Kategori"]) kategoriSet.add(row["Kategori"]);
+        if (row["Lokasi"]) lokasiSet.add(row["Lokasi"]);
+      });
+
+      const kategoriSelect = document.getElementById("filterKategori");
+      kategoriSet.forEach(val => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        kategoriSelect.appendChild(opt);
+      });
+
+      const lokasiSelect = document.getElementById("filterLokasi");
+      lokasiSet.forEach(val => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        lokasiSelect.appendChild(opt);
+      });
+
+      kategoriSelect.addEventListener("change", applyFilters);
+      lokasiSelect.addEventListener("change", applyFilters);
+    }
+
+    function applyFilters() {
+      const selectedKategori = document.getElementById("filterKategori").value;
+      const selectedLokasi = document.getElementById("filterLokasi").value;
+
+      const filtered = fullData.filter(row => {
+        const matchKategori = selectedKategori ? row["Kategori"] === selectedKategori : true;
+        const matchLokasi = selectedLokasi ? row["Lokasi"] === selectedLokasi : true;
+        return matchKategori && matchLokasi;
+      });
+
+      populateTable(filtered);
     }
 
     function populateTable(data) {
       const tbody = document.getElementById("tbody-data");
       tbody.innerHTML = "";
 
+      if (dataTable) {
+        dataTable.destroy();
+      }
+
       data.forEach((row, index) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${row["ID Barang"] || ""}</td>
-          <td><a href="#" onclick="showDetail(${index})">${row["Nama Barang"] || ""}</a></td>
+          <td><a href="#" onclick="showDetail(${fullData.indexOf(row)})">${row["Nama Barang"] || ""}</a></td>
           <td>${row["Kategori"] || ""}</td>
           <td>${row["Merk/Tipe"] || ""}</td>
           <td>${row["Spesifikasi"] || ""}</td>
@@ -124,7 +194,7 @@
         tbody.appendChild(tr);
       });
 
-      new DataTable('#tabelBarang', {
+      dataTable = new DataTable('#tabelBarang', {
         responsive: true,
         language: {
           search: "Cari:",
